@@ -35,9 +35,6 @@
 
 # Встановіть залежності:
 
-bash
-Copy code
-pip install -r requirements.txt
 Залежності включають:
 
 requests

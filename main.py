@@ -61,7 +61,7 @@ def img_save_to_json_data(url):
 
 
 
-#Запуск скрипту
+#Запуск скрипта
 
 chrome_options = Options()
 chrome_options.add_argument('--start-maximized')

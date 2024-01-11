@@ -30,17 +30,17 @@
   ...
 ]
 
-
+realtylink_info.json - це файл, в якому зберігаються дані, отримані з веб-сайту RealtyLink за допомогою ваших скриптів. Формат цього файлу - JSON, що є поширеним форматом обміну даними.
 
 
 # Встановіть залежності:
 
 Залежності включають:
 
-requests
-beautifulsoup4
-selenium
-datetime
+pip install requests
+pip install beautifulsoup4
+pip install selenium
+
 Завантажте та встановіть chromedriver для сумісності з вашою версією браузера Chrome.
 
 Запустіть скрипт:

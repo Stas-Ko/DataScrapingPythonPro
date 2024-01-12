@@ -4,6 +4,8 @@ import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 from datetime import datetime
 
@@ -12,6 +14,8 @@ current_date = datetime.now().strftime("%m/%d/%Y")
 
 # Створити пустий список для зберігання даних про оголошення
 ad_info_list = []
+# лічильник об'єктів збережених
+count_obj = 1
 
 # функція призначена для отримання всіх посилань на фотографії в оголошенні.
 def img_save_to_json_data(url):
@@ -21,21 +25,25 @@ def img_save_to_json_data(url):
     driver = webdriver.Chrome(options=chrome_options)
 
     driver.get(url)
-    time.sleep(1)
+    time.sleep(0.5)
 
     button = driver.find_element(By.XPATH, '//div[@class="thumbnail last-child first-child"]')
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Натискання на кнопку
     button.click()
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Знаходження елементу на сторінці
     element = driver.find_element(By.XPATH, "//div[@class='description']")
 
-    # Отримання тексту елемента
-    element_text = int(element.text.split("/")[1])
-
+    time.sleep(1)
+    # Перевірка наявності тексту перед його отриманням
+    try:
+        element_text = int(element.text.split("/")[1])
+    except (IndexError, ValueError):
+        print('ошибка')
+        element_text = 0  # или другое значение по умолчанию, если возникла ошибка
     list_img = []
 
     for i in range(element_text):
@@ -49,10 +57,10 @@ def img_save_to_json_data(url):
 
         # Знаходження елемента
         next_img = driver.find_element(By.ID, 'fullImg')
-        time.sleep(1)
+        time.sleep(0.5)
         # Натискання на елемент
         next_img.click()
-        time.sleep(1)
+        time.sleep(0.5)
 
     # Завершення сеансу
     driver.quit()
@@ -60,8 +68,7 @@ def img_save_to_json_data(url):
     return list_img
 
 
-
-#Запуск скрипта
+#Запуск скрипту
 
 chrome_options = Options()
 chrome_options.add_argument('--start-maximized')
@@ -78,11 +85,17 @@ for next_page in range(3):
     # Проходження по кожному елементу та натискання на нього
     for i in range(len(img_elements)):
         img_element = driver.find_elements(By.XPATH, '//img[@itemprop="image"]')[i]
+        #time.sleep(1)
+
+        # Явне очікування доти, доки елемент не стане клікабельним
+        wait = WebDriverWait(driver, 10)  # Чекаємо максимум 10 секунд
+        img_element = wait.until(EC.element_to_be_clickable((By.XPATH, '//img[@itemprop="image"]')))
+
         img_element.click()
 
         # Отримання поточного URL після натискання на зображення
         url = driver.current_url
-        time.sleep(1)
+        time.sleep(0.5)
 
         # Встановлення заголовків, щоб емулювати браузер
         headers = {
@@ -99,7 +112,7 @@ for next_page in range(3):
             description_elem = soup.find("div", itemprop="description")
             if description_elem:
                 description = description_elem.text.strip()
-                print("Опис:", description)
+
             else:
                 description = "Опис не знайдено"
 
@@ -112,7 +125,7 @@ for next_page in range(3):
             # Знаходження та збереження регіону (region)
             region_elem = soup.find("h2", itemprop="address")
             region = region_elem.text.strip() if region_elem else "Регіон не знайдено"
-            print("Регіон:", ', '.join(region.split(',')[1:]).strip())
+
 
             # Знаходження та збереження адреси (address)
             address_elem = soup.find("h2", itemprop="address")
@@ -168,7 +181,9 @@ for next_page in range(3):
             with open("realtylink_info.json", "w", encoding="utf-8") as json_file:
                 json.dump(ad_info_list, json_file, ensure_ascii=False, indent=2)
 
-            print("JSON файл збережено.")
+                print(f"JSON файл {count_obj} збережено.")
+
+            count_obj += 1
 
         driver.back()
         time.sleep(1)
@@ -181,3 +196,4 @@ for next_page in range(3):
     time.sleep(1)
 
 driver.quit()
+

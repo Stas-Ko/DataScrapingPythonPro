@@ -57,7 +57,7 @@ def get_page_data(url, current_date, driver):
         rooms_number = rooms_text[0] if rooms_text and rooms_text[0].isdigit() else None
 
         # Збереження інформації у випадку відсутності даних
-        rooms = rooms_number if rooms_number is not None else "Кількість кімнат не знайдена"
+        rooms = rooms_number if rooms_number is not None else "-"
 
         # Знаходження та збереження площі (real estate area)
         area_elem = soup.find("div", class_="carac-value")

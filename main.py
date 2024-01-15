@@ -5,9 +5,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from scraper import get_page_data
+from scraper import get_page_data, get_image_links
 from json_handler import save_to_json
-from utils import get_image_links
+#from utils import get_image_links
 
 
 # Запуск скрипту

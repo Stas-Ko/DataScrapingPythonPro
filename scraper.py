@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from utils import get_image_links
+#from utils import get_image_links
 
 
 # функція призначена для отримання даних зі сторінки.
@@ -79,3 +79,64 @@ def get_page_data(url, current_date, driver):
         }
 
         return ad_info
+
+
+# функція призначена для отримання всіх посилань на фотографії в оголошенні.
+def get_image_links(driver):
+
+    # Знаходження елементу на сторінці
+    button = WebDriverWait(driver, 60).until(
+        EC.presence_of_element_located((By.XPATH, '//div[@class="thumbnail last-child first-child"]'))
+    )
+    time.sleep(0.5)
+
+    # Натискання на кнопку
+    button.click()
+    time.sleep(1)
+
+    # Знаходження елементу на сторінці
+    element = WebDriverWait(driver, 60).until(
+        EC.presence_of_element_located((By.XPATH, "//div[@class='description']"))
+    )
+
+    # кількість фото в альбомі на сторінці
+    if "/" in element.text:
+        number_of_photos = int(element.text.split("/")[1])
+    else:
+        number_of_photos = 0  # или другое значение по умолчанию, если текст не содержит "/"
+
+    # створення списку для зберігання посилання на фото
+    list_img = []
+
+    for i in range(number_of_photos):
+        # Знаходження елемента за id "fullImg"
+        img_element = driver.find_element(By.ID, 'fullImg')
+
+        # Отримання значення атрибута src
+        src_value = img_element.get_attribute('src')
+
+        # Додавання значення атрибута src до списку
+        list_img.append(src_value)
+
+        # створення прапора для управління циклом, реакція на винятки
+        check_errors = True
+
+        while check_errors:
+
+            try:
+                # Знаходження елемента
+                next_img = WebDriverWait(driver, 60).until(
+                    EC.presence_of_element_located((By.ID, 'fullImg'))
+                )
+                next_img.click()
+
+                # прапора False  якщо не виникло винятків
+                check_errors = False
+            except Exception as e:
+                time.sleep(2)
+
+    # повернення на попередню сторінку
+    driver.back()
+
+    # список посилань на фото з одного оголошення
+    return list_img

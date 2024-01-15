@@ -1,6 +1,6 @@
 import json
 
-
+# Функція призначена для збереження даних у Json
 def save_to_json(ad_info, count_obj):
 
     try:

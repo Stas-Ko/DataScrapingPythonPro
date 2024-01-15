@@ -1,12 +1,12 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-#from utils import get_image_links
 
 
-# функція призначена для отримання даних зі сторінки.
+# Функція призначена для отримання даних зі сторінки.
 def get_page_data(url, current_date, driver):
 
     # Встановлення заголовків, щоб емулювати браузер
@@ -81,7 +81,7 @@ def get_page_data(url, current_date, driver):
         return ad_info
 
 
-# функція призначена для отримання всіх посилань на фотографії в оголошенні.
+# Функція призначена для отримання всіх посилань на фотографії в оголошенні.
 def get_image_links(driver):
 
     # Знаходження елементу на сторінці
@@ -99,13 +99,13 @@ def get_image_links(driver):
         EC.presence_of_element_located((By.XPATH, "//div[@class='description']"))
     )
 
-    # кількість фото в альбомі на сторінці
+    # Кількість фото в альбомі на сторінці
     if "/" in element.text:
         number_of_photos = int(element.text.split("/")[1])
     else:
         number_of_photos = 0  # или другое значение по умолчанию, если текст не содержит "/"
 
-    # створення списку для зберігання посилання на фото
+    # Створення списку для зберігання посилання на фото
     list_img = []
 
     for i in range(number_of_photos):
@@ -118,7 +118,7 @@ def get_image_links(driver):
         # Додавання значення атрибута src до списку
         list_img.append(src_value)
 
-        # створення прапора для управління циклом, реакція на винятки
+        # Створення прапора для управління циклом, реакція на винятки
         check_errors = True
 
         while check_errors:
@@ -130,7 +130,7 @@ def get_image_links(driver):
                 )
                 next_img.click()
 
-                # прапора False  якщо не виникло винятків
+                # Прапора False якщо не виникло винятків
                 check_errors = False
             except Exception as e:
                 time.sleep(2)
@@ -140,3 +140,4 @@ def get_image_links(driver):
 
     # список посилань на фото з одного оголошення
     return list_img
+

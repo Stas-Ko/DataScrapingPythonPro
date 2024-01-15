@@ -45,8 +45,7 @@ def main():
             if 'data:,' == current_url:
                 # Якщо так, то переходимо вперед
                 driver.forward()
-                print(current_url)
-
+                
             # Очікування видимості елемента зображення
             img_element = WebDriverWait(driver, 60).until(
                 EC.visibility_of_element_located((By.XPATH, f'(//img[@itemprop="image"])[{i + 1}]'))

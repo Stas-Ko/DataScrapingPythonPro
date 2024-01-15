@@ -1,199 +1,107 @@
-import requests
-from bs4 import BeautifulSoup
-import json
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import time
 from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from scraper import get_page_data
+from json_handler import save_to_json
+from utils import get_image_links
 
-# Отримати поточну дату в форматі "місяць/день/рік"
-current_date = datetime.now().strftime("%m/%d/%Y")
 
-# Створити пустий список для зберігання даних про оголошення
-ad_info_list = []
-# лічильник об'єктів збережених
-count_obj = 1
+# Запуск скрипту
+def main():
+    # Отримати поточну дату в форматі "місяць/день/рік"
+    current_date = datetime.now().strftime("%m/%d/%Y")
 
-# функція призначена для отримання всіх посилань на фотографії в оголошенні.
-def img_save_to_json_data(url):
+    # лічильник збережених об'єктів в JSON файл
+    count_obj = 1
+
+    # Налаштування опцій для браузера Chrome
     chrome_options = Options()
     chrome_options.add_argument('--start-maximized')
-    #chrome_options.add_argument('--headless')  # Додаємо параметр для фонового режиму
+    # Створення об'єкту веб-драйвера для браузера Chrome з заданими опціями
     driver = webdriver.Chrome(options=chrome_options)
 
-    driver.get(url)
-    time.sleep(0.5)
+    # Перехід на вказану веб-сторінку
+    driver.get('https://realtylink.org/en/properties~for-rent')
 
-    button = driver.find_element(By.XPATH, '//div[@class="thumbnail last-child first-child"]')
-    time.sleep(0.5)
+    # Цикл для переходу на наступні сторінки (три сторінки в цьому прикладі)
+    for next_page in range(3):
 
-    # Натискання на кнопку
-    button.click()
-    time.sleep(0.5)
+        # Очікування, доки всі елементи знайдуться на сторінці
+        img_elements = WebDriverWait(driver, 60).until(
+            EC.presence_of_all_elements_located((By.XPATH, '//img[@itemprop="image"]'))
+        )
 
-    # Знаходження елементу на сторінці
-    element = driver.find_element(By.XPATH, "//div[@class='description']")
+        # Проходження по кожному елементу оголошення на сторінці та натискання на нього
+        for i, img_element in enumerate(img_elements):
 
-    time.sleep(1)
-    # Перевірка наявності тексту перед його отриманням
-    try:
-        element_text = int(element.text.split("/")[1])
-    except (IndexError, ValueError):
-        print('ошибка')
-        element_text = 0  # или другое значение по умолчанию, если возникла ошибка
-    list_img = []
+            # Отримання поточного URL
+            current_url = driver.current_url
 
-    for i in range(element_text):
-        # Знаходження елемента за id "fullImg"
-        img_element = driver.find_element(By.ID, 'fullImg')
+            # Перевірка, чи поточний URL є 'data:,'
+            if 'data:,' == current_url:
+                # Якщо так, то переходимо вперед
+                driver.forward()
+                print(current_url)
 
-        # Отримання значення атрибута src
-        src_value = img_element.get_attribute('src')
+            # Очікування видимості елемента зображення
+            img_element = WebDriverWait(driver, 60).until(
+                EC.visibility_of_element_located((By.XPATH, f'(//img[@itemprop="image"])[{i + 1}]'))
+            )
 
-        list_img.append(src_value)
+            img_element.click()
+            time.sleep(1)
 
-        # Знаходження елемента
-        next_img = driver.find_element(By.ID, 'fullImg')
-        time.sleep(0.5)
-        # Натискання на елемент
-        next_img.click()
-        time.sleep(0.5)
+            # Отримання поточного URL після натискання на зображення
+            url = driver.current_url
 
-    # Завершення сеансу
-    driver.quit()
+            # Виклик функції для отримання словника з даними з одного оголошення
+            ad_info = get_page_data(url, current_date, driver)
 
-    return list_img
+            # Виклик функції для збереження даних у json файл
+            save_to_json(ad_info, count_obj)
 
-
-#Запуск скрипту
-
-chrome_options = Options()
-chrome_options.add_argument('--start-maximized')
-#chrome_options.add_argument('--headless')  # Додаємо параметр для фонового режиму
-driver = webdriver.Chrome(options=chrome_options)
-
-driver.get('https://realtylink.org/en/properties~for-rent')
-
-for next_page in range(3):
-
-    # Знаходження всіх елементів зображень за атрибутом src
-    img_elements = driver.find_elements(By.XPATH, '//img[@itemprop="image"]')
-
-    # Проходження по кожному елементу та натискання на нього
-    for i in range(len(img_elements)):
-        img_element = driver.find_elements(By.XPATH, '//img[@itemprop="image"]')[i]
-        #time.sleep(1)
-
-        # Явне очікування доти, доки елемент не стане клікабельним
-        wait = WebDriverWait(driver, 10)  # Чекаємо максимум 10 секунд
-        img_element = wait.until(EC.element_to_be_clickable((By.XPATH, '//img[@itemprop="image"]')))
-
-        img_element.click()
-
-        # Отримання поточного URL після натискання на зображення
-        url = driver.current_url
-        time.sleep(0.5)
-
-        # Встановлення заголовків, щоб емулювати браузер
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-
-        response = requests.get(url, headers=headers)
-
-        # Перевірка на правильність отримання сторінки
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            # Знаходження опису оголошення, перевірка чи елемент існує
-            description_elem = soup.find("div", itemprop="description")
-            if description_elem:
-                description = description_elem.text.strip()
-
-            else:
-                description = "Опис не знайдено"
-
-
-            # Знаходження та збереження заголовка (title)
-            title_elem = soup.find("span", {"data-id": "PageTitle"})
-            title = title_elem.text.strip() if title_elem else "Заголовок не знайдено"
-
-
-            # Знаходження та збереження регіону (region)
-            region_elem = soup.find("h2", itemprop="address")
-            region = region_elem.text.strip() if region_elem else "Регіон не знайдено"
-
-
-            # Знаходження та збереження адреси (address)
-            address_elem = soup.find("h2", itemprop="address")
-            address = region_elem.text.strip() if region_elem else "Адреса не знайдена"
-
-            # Знаходження та збереження Ціни (price)
-            price_elem = soup.find("div", class_="price text-right")
-            price_currency = price_elem.find("meta", itemprop="priceCurrency")["content"]
-            price_value = price_elem.find("meta", itemprop="price")["content"]
-            price = f"{price_currency} {price_value}"
-
-            # Знаходження та збереження кількості кімнат (rooms)
-            rooms_elem = soup.find("div", class_="col-lg-3 col-sm-6 cac")
-            rooms_text = rooms_elem.text.strip() if rooms_elem else "Кількість кімнат не знайдена"
-
-            # Перевірка чи повертається числове значення
-            rooms_number = rooms_text[0] if rooms_text and rooms_text[0].isdigit() else None
-
-            # Збереження інформації у випадку відсутності даних
-            rooms = rooms_number if rooms_number is not None else "Кількість кімнат не знайдена"
-
-
-            # Знаходження та збереження площі (real estate area)
-            area_elem = soup.find("div", class_="carac-value")
-            area = area_elem.text.strip() if area_elem else "Площа не знайдена"
-
-            # Збереження інформації у вигляді JSON
-            ad_info = {
-                "title": title,
-                "description": description,
-                "region": ', '.join(region.split(',')[1:]).strip(),
-                "price": price,
-                "date": current_date,
-                "rooms": rooms[0],
-                "real estate area": area,
-                "address": address,
-                "url": response.url,
-                "array links images": img_save_to_json_data(url)
-            }
-
-            try:
-                with open("realtylink_info.json", "r+", encoding="utf-8") as json_file:
-                    # Читання існуючих даних з файлу
-                    ad_info_list = json.load(json_file)
-            except FileNotFoundError:
-                # Якщо файл не існує, створення нового списку
-                ad_info_list = []
-
-            # Додавання нового об'єкта до списку
-            ad_info_list.append(ad_info)
-
-            # Збереження всіх оголошень у файл
-            with open("realtylink_info.json", "w", encoding="utf-8") as json_file:
-                json.dump(ad_info_list, json_file, ensure_ascii=False, indent=2)
-
-                print(f"JSON файл {count_obj} збережено.")
-
+            # лічильник об'єктів
             count_obj += 1
 
-        driver.back()
-        time.sleep(1)
+            # повернення на попередню сторінку
+            driver.back()
+            time.sleep(1)
 
-    # Знаходження елементу за класом "next"
-    next_button = driver.find_element(By.CLASS_NAME, 'next')
+        # створення прапора для управління циклом, реакція на винятки
+        check_next_button = True
 
-    # Натискання на елемент
-    next_button.click()
-    time.sleep(1)
+        while check_next_button:
 
-driver.quit()
+            current_url = driver.current_url
 
+            # Перевірка, чи поточний URL є 'data:,'
+            if 'data:,' == current_url:
+                # Якщо так, то переходимо вперед
+                driver.forward()
+
+            try:
+                # Знаходження елементу за класом "next"
+                wait = WebDriverWait(driver, 60)
+                # Очікування, доки елемент стане клікабельним (в даному випадку - кнопка "next")
+                next_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'next')))
+
+                # Натискання на елемент
+                next_button.click()
+                time.sleep(1)
+
+                # прапора False якщо не виникло винятків
+                check_next_button = False
+
+            except Exception as e:
+                time.sleep(2)
+
+    # закриття браузера після завершення всіх операцій
+    driver.quit()
+
+
+if __name__ == "__main__":
+    main()
